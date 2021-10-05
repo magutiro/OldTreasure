@@ -7,6 +7,9 @@ using System;
 
 public class Board : MonoBehaviour
 {
+    private const float FillPieceDuration = 0.2f;
+    private const float SwitchPieceCuration = 0.02f;
+
     public Piece[,] board;
     public BoardKind.BoardDir boardDir;
 
@@ -16,7 +19,11 @@ public class Board : MonoBehaviour
     Canvas canvas;
     [SerializeField]
     private RectTransform canvasRect;
+    [SerializeField]
+    private TweenAnimationManager animManager;
+    private List<Vector2> pieceCreatePos = new List<Vector2>();
 
+    private List<AnimData> fillPieceAnim = new List<AnimData>();
     public bool IsLastBoard;
     void OutputBoard()
     {
@@ -46,6 +53,7 @@ public class Board : MonoBehaviour
         //Debug.Log(str);
 
     }
+    //初期化
     public void InitializeBorad()
     {
         board = new Piece[6, 6];
@@ -53,35 +61,41 @@ public class Board : MonoBehaviour
         {
             for(int x = 0; x < 6; x++)
             {
-                board[y, x] = transform.GetChild(y*6+x).gameObject.GetComponent<Piece>();
-                board[y, x].boardPos = new Vector2(y, x);
-
-                //Debug.Log(board[x,y].boardPos);
-
-                board[y, x].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(0, Enum.GetNames(typeof(PieceKind.piecekind)).Length-1);
-                board[y, x].setSprite();
+                //ボード[x,y]にピースを当てはめる。
+                //左上0,0  右上5,0
+                //左下0,5　右下5,5
+                board[x, y] = transform.GetChild(y*6+x).gameObject.GetComponent<Piece>();
+                board[x, y].boardPos = new Vector2(x,y);
+                //ランダムにピースの種類を決定
+                board[x, y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(0, Enum.GetNames(typeof(PieceKind.piecekind)).Length-2);
+                board[x, y].setSprite();
             }
         }
+        //もし繋がっていたらやり直し
         while (MatchPiece())
         {
             for (int y = 0; y < 6; y++)
             {
                 for (int x = 0; x < 6; x++)
                 {
-                    board[y, x].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(0, Enum.GetNames(typeof(PieceKind.piecekind)).Length-1);
-                    board[y, x].setSprite();
+                    board[x, y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(0, Enum.GetNames(typeof(PieceKind.piecekind)).Length-2);
+                    board[x, y].setSprite();
                     gameManager.IsHorizontal = false;
                     gameManager.IsVertical = false;
                 }
             }
         }
+        animManager.AddListAnimData(fillPieceAnim);
     }
     private void Start()
     {
     }
+
+    //クリックした場所に近いピースを返す
     public Piece GetNearestPiece(Vector3 input)
     {
         OutputInt();
+
         var minDist = float.MaxValue;
         Piece nearestPiece = null;
         foreach (var p in board)
@@ -95,22 +109,30 @@ public class Board : MonoBehaviour
         }
         return nearestPiece;
     }
+    //ピースの入れ替え
 
     public void SwitchPiece(Piece p1,Piece p2)
     {
-        var p1Position = p1.piecekind;
+        // 位置を移動する
+        var animList = new List<AnimData>();
+        animList.Add(new AnimData(p1.gameObject, p2.pieceRectTransform.position, SwitchPieceCuration));
+        animList.Add(new AnimData(p2.gameObject, p1.pieceRectTransform.position, SwitchPieceCuration));
+        animManager.AddListAnimData(animList);
+
+        var p1kind = p1.piecekind;
         p1.piecekind = p2.piecekind;
-        p2.piecekind = p1Position;
+        p2.piecekind = p1kind;
+
         p1.setSprite(); p2.setSprite();
         //board[(int)p1.boardPos.x, (int)p1.boardPos.y] = p2;
         //board[(int)p2.boardPos.x, (int)p2.boardPos.y] = p1;
     }
 
+    //マッチングしているピースの有無を判断
     public bool MatchPiece()
     {
 
         //OutputBoard();
-        //マッチングしているピースの有無を判断
         foreach (var piece in board)
         {
             if (IsMatchPiece(piece))
@@ -120,16 +142,16 @@ public class Board : MonoBehaviour
         }
         return false;
     }
-
+    //繋がっているかどうか判断
     private bool IsMatchPiece(Piece piece)
     {
         var kind = piece.piecekind;
         var pos = piece.boardPos;
 
+        // 横縦方向にマッチするかの判定 自分自身をカウントするため +1 する
+        var verticalMatchCount = GetSameKindPieceNum(kind, pos, Vector2.up) + GetSameKindPieceNum(kind, pos, Vector2.down) + 1;
         // 横方向にマッチするかの判定 自分自身をカウントするため +1 する
-        var horizontalMatchCount = GetSameKindPieceNum(kind, pos, Vector2.up) + GetSameKindPieceNum(kind, pos, Vector2.down) + 1;
-        // 縦方向にマッチするかの判定 自分自身をカウントするため +1 する
-        var verticalMatchCount = GetSameKindPieceNum(kind, pos, Vector2.right) + GetSameKindPieceNum(kind, pos, Vector2.left) + 1;
+        var horizontalMatchCount = GetSameKindPieceNum(kind, pos, Vector2.right) + GetSameKindPieceNum(kind, pos, Vector2.left) + 1;
 
         if(verticalMatchCount >= 3)
         {
@@ -148,7 +170,7 @@ public class Board : MonoBehaviour
         while (true)
         {
             piecePos += searchDir;
-            if (IsInBoard(piecePos) && board[(int)piecePos.x, (int)piecePos.y].piecekind == kind)
+            if (IsInBoard(piecePos) && board[(int)piecePos.x, (int)piecePos.y].piecekind == kind && kind != PieceKind.piecekind.None && kind != PieceKind.piecekind.Gley)
             {
                 count++;
 
@@ -168,68 +190,115 @@ public class Board : MonoBehaviour
     }
     public IEnumerator DeleteMatchPiece(Action endCallBadk)
     {
-        int count = 0;
         // マッチしているピースの削除フラグを立てる
         foreach (var piece in board)
         {
             piece.isDeletePiece = IsMatchPiece(piece);
             if (piece.isDeletePiece)
             {
-                count++;
             }
-            //Debug.Log(piece.isDeletePiece);
         }
         foreach (var piece in board)
         {
-            if (piece.piecekind != PieceKind.piecekind.None && piece.isDeletePiece)
+            if (piece.piecekind != PieceKind.piecekind.None && IsMatchPiece(piece) && piece.piecekind != PieceKind.piecekind.Gley)
             {
-                piece.piecekind = PieceKind.piecekind.None;
-                piece.setSprite();
+                DeleteMatchPiece(piece.boardPos, piece.piecekind);
+                //piece.piecekind = PieceKind.piecekind.None;
+                yield return new WaitForSeconds(0.5f);
             }
         }
-        yield return new WaitForSeconds(0.5f);
         endCallBadk();
+    }
+    void DeleteMatchPiece(Vector2 pos,PieceKind.piecekind kind)
+    {
+        if (!IsInBoard(pos)) {
+            return; 
+        }
+
+        var piece = board[(int)pos.x, (int)pos.y];
+        if(piece.isDeletePiece || piece.piecekind != kind)
+        {
+            return;
+        }
+
+        if (!IsMatchPiece(piece)) {
+            return; 
+        }
+
+        piece.isDeletePiece = true;
+        Vector2[] directions= { Vector2.up,Vector2.down,Vector2.left,Vector2.right};
+        foreach (var dir in directions)
+        {
+            DeleteMatchPiece(pos + dir, kind);
+        }
+        piece.piecekind = PieceKind.piecekind.None;
+        piece.setSprite();
+    }
+    public int IsDeletePiece()
+    {
+        var count = 0;
+        foreach (var piece in board)
+        {
+            if (piece.isDeletePiece)
+            {
+                count++;
+            }
+        }
+        //Debug.Log("check " + count + name);
+        return count;
     }
     public IEnumerator FillPiece(Action endCallBack)
     {
-        for (int i = 0; i < 6; i++)
+        for (int y = 5; y >= 0; y--)
         {
-            for (int j = 0; j < 6; j++)
+            for (int x = 0; x < 6; x++)
             {
-                if (gameManager.IsVertical)
+                if (gameManager.IsVertical && boardDir == BoardKind.BoardDir.Front)
                 {
-                    FillPiece(new Vector2(i, j), Vector2.left);
+                    FillPiece(new Vector2(x, y), Vector2.down);
                     continue;
                 }
-                if (gameManager.IsHorizontal)
+                if (gameManager.IsHorizontal && boardDir == BoardKind.BoardDir.Front)
                 {
-                    FillPiece(new Vector2(i, j), Vector2.up);
+                    FillPiece(new Vector2(x, y), Vector2.right);
                     continue;
                 }
 
+                switch (boardDir)
+                {
+                    case BoardKind.BoardDir.Up:
+                        UpFillPiece(new Vector2(x, y), Vector2.down);
+                        break;
+                    case BoardKind.BoardDir.Right:
+                        RightFillPiece(new Vector2(x, y), Vector2.right);
+                        break;
+                }
             }
         }
-        yield return new WaitForSeconds(0.5f);
+        animManager.AddListAnimData(fillPieceAnim);
+        yield return new WaitForSeconds(0.1f); FillPiece();
         endCallBack();
     }
     public void FillPiece()
     {
-        //Debug.Log(name);
-        for (int i = 0; i < 6; i++)
+        for (int y = 5; y >= 0; y--)
         {
-            for (int j = 0; j < 6; j++)
+            for (int x = 0; x < 6; x++)
             {
-                if (gameManager.IsVertical)
+                if (boardDir == BoardKind.BoardDir.Front)
                 {
-                    FillPiece(new Vector2(i, j), Vector2.left);
-                    continue;
+                    FillGreyPiece(new Vector2(x, y), Vector2.down);
                 }
-                if (gameManager.IsHorizontal)
+            }
+        }
+        for (int y = 5; y >= 0; y--)
+        {
+            for (int x = 0; x < 6; x++)
+            {
+                if (boardDir == BoardKind.BoardDir.Front)
                 {
-                    FillPiece(new Vector2(i, j), Vector2.up);
-                    continue;
+                    FillGreyPiece(new Vector2(x, y), Vector2.right);
                 }
-
             }
         }
     }
@@ -248,7 +317,122 @@ public class Board : MonoBehaviour
             //上または右のピースが、消えていなければ
             if (checkPiece.piecekind != PieceKind.piecekind.None && !checkPiece.isDeletePiece)
             {
-                //Debug.Log(checkPiece.piecekind);
+                piece.piecekind = checkPiece.piecekind;
+                board[(int)checkPos.x, (int)checkPos.y].piecekind = PieceKind.piecekind.None;
+                piece.setSprite();
+                board[(int)checkPos.x, (int)checkPos.y].setSprite();
+
+                piece.isDeletePiece = false;
+                board[(int)checkPos.x, (int)checkPos.y].isDeletePiece = true;
+
+                return;
+            }
+            checkPos += delDir;
+        }
+        CreatePiece(pos);
+    }
+    private void FillGreyPiece(Vector2 pos, Vector2 delDir)
+    {
+        var piece = board[(int)pos.x, (int)pos.y];
+        //ピースがグレーでなければ何もしない
+        if (piece.piecekind != PieceKind.piecekind.None && piece.piecekind != PieceKind.piecekind.Gley)
+        {
+            return;
+        }
+        var checkPos = pos + delDir;
+        while (IsInBoard(checkPos))
+        {
+            var checkPiece = board[(int)checkPos.x, (int)checkPos.y];
+            //上または右のピースが、消えていなければ
+            if (piece.piecekind != PieceKind.piecekind.None && checkPiece.piecekind != PieceKind.piecekind.Gley)
+            {
+                piece.piecekind = checkPiece.piecekind;
+                board[(int)checkPos.x, (int)checkPos.y].piecekind = PieceKind.piecekind.Gley;
+                piece.setSprite();
+                board[(int)checkPos.x, (int)checkPos.y].setSprite();
+
+
+                return;
+            }
+            checkPos += delDir;
+        }
+        CreatePiece(pos);
+    }
+    private void UpFillPiece(Vector2 pos)
+    {
+        var piece = board[(int)pos.x, (int)pos.y];
+        board[(int)pos.x, (int)pos.y].piecekind = gameManager.boards[0].board[(int)pos.x, 5].piecekind;
+        gameManager.boards[0].board[(int)pos.x, 5].piecekind = PieceKind.piecekind.Gley;
+
+        gameManager.boards[0].board[(int)pos.x, 5].isDeletePiece = false;
+        board[(int)pos.x, (int)pos.y].isDeletePiece = false;
+        board[(int)pos.x, (int)pos.y].setSprite();
+        gameManager.boards[0].board[(int)pos.x, 5].setSprite();
+        for(int y = 5; y >= 0; y--)
+        {
+            UpFillPiece(new Vector2((int)pos.x, y), Vector2.down);
+        }
+    }
+    void UpFillPiece(Vector2 pos,Vector2 delDir)
+    {
+        var piece = board[(int)pos.x, (int)pos.y];
+        //ピースが消されていなければ何もしない
+        if (piece.piecekind != PieceKind.piecekind.None && piece.piecekind != PieceKind.piecekind.Gley)
+        {
+            return;
+        }
+        var checkPos = pos + delDir;
+        while (IsInBoard(checkPos))
+        {
+            var checkPiece = board[(int)checkPos.x, (int)checkPos.y];
+            //上のピースが、消えていなければ
+            if (piece.piecekind != PieceKind.piecekind.None && checkPiece.piecekind != PieceKind.piecekind.Gley)
+            {
+                piece.piecekind = checkPiece.piecekind;
+                checkPiece.piecekind = PieceKind.piecekind.Gley;
+                piece.setSprite();
+                checkPiece.setSprite();
+
+                piece.isDeletePiece = false;
+                checkPiece.isDeletePiece = false;
+
+                return;
+            }
+            checkPos += delDir;
+        }
+        CreatePiece(pos);
+    }
+    private void RightFillPiece(Vector2 pos)
+    {
+        var piece = board[(int)pos.x, (int)pos.y].piecekind;
+        board[(int)pos.x, (int)pos.y].piecekind = gameManager.boards[1].board[0, (int)pos.y].piecekind;
+        gameManager.boards[1].board[0, (int)pos.y].piecekind = PieceKind.piecekind.None;
+
+        gameManager.boards[1].board[0, (int)pos.y].isDeletePiece = false;
+        board[(int)pos.x, (int)pos.y].isDeletePiece = false;
+
+        gameManager.boards[1].board[0, (int)pos.y].setSprite();
+        board[(int)pos.x, (int)pos.y].setSprite(); 
+        for (int x = 0; x < 6; x++)
+        {
+            RightFillPiece(new Vector2(x,(int)pos.y), Vector2.right);
+        }
+    }
+    void RightFillPiece(Vector2 pos, Vector2 delDir)
+    {
+        var piece = board[(int)pos.x, (int)pos.y];
+        //ピースが消されていなければ何もしない
+        if (piece.piecekind != PieceKind.piecekind.None && !piece.isDeletePiece)
+        {
+            return;
+        }
+        var checkPos = pos + delDir;
+        while (IsInBoard(checkPos))
+        {
+            var checkPiece = board[(int)checkPos.x, (int)checkPos.y];
+            //上のピースが、消えていなければ
+            if (checkPiece.piecekind != PieceKind.piecekind.None && !checkPiece.isDeletePiece)
+            {
                 piece.piecekind = checkPiece.piecekind;
                 checkPiece.piecekind = PieceKind.piecekind.None;
                 piece.setSprite();
@@ -257,65 +441,30 @@ public class Board : MonoBehaviour
                 piece.isDeletePiece = false;
                 checkPiece.isDeletePiece = true;
 
-
-                //StartCoroutine(FillPiece(() => Debug.Log("Fill2")));
-                //board[(int)pos.x, (int)pos.y] = checkPiece;
-                //board[(int)checkPos.x, (int)checkPos.y] = piece;
-                //board[(int)checkPos.x, (int)checkPos.y].isDeletePiece = false;
                 return;
             }
             checkPos += delDir;
         }
-        //Debug.Log("check "+ pos + name);
         CreatePiece(pos);
-    }
-
-    public int IsDeletePiece()
-    {
-        var count = 0;
-        foreach (var piece in board)
-        {
-            if (piece.isDeletePiece)
-            {
-                count++;
-            }
-        }
-        //Debug.Log("check " + count + name);
-        return count;
-    }
-    private void UpFillPiece(Vector2 pos)
-    {
-        var piece = board[(int)pos.x, (int)pos.y].piecekind;
-        board[(int)pos.x, (int)pos.y].piecekind = gameManager.boards[0].board[5, (int)pos.y].piecekind;
-        gameManager.boards[0].board[5, (int)pos.y].piecekind = piece;
-
-        gameManager.boards[0].board[5, (int)pos.y].isDeletePiece = true;
-        board[(int)pos.x, (int)pos.y].isDeletePiece = false;
-
-        gameManager.boards[0].board[5, (int)pos.y].setSprite();
-        board[(int)pos.x, (int)pos.y].setSprite();
-
-        //Debug.Log("check " + pos + name);
-        if(gameManager.boards[0].IsDeletePiece()>=1)
-        {
-            //gameManager.boards[0].FillPiece();
-        }
     }
     private void CreatePiece(Vector2 pos)
     {
         if(IsLastBoard == true)
         {
-            board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.Blue;
+            board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.Gley;
+            board[(int)pos.x, (int)pos.y].isDeletePiece = false;
+            board[(int)pos.x, (int)pos.y].setSprite();
+            return;
         }
         if (boardDir == BoardKind.BoardDir.Front)
         {
             if (gameManager.boards.Count >=1 && gameManager.IsVertical)
             {
-                UpFillPiece(pos);
+                gameManager.boards[0].UpFillPiece(pos);
             }
-            if (gameManager.boards.Count >= 2 && gameManager.IsHorizontal)
+            else if (gameManager.boards.Count >= 2 && gameManager.IsHorizontal)
             {
-
+                gameManager.boards[0].RightFillPiece(pos);
             }
             if (board[(int)pos.x, (int)pos.y].isDeletePiece)
             {
@@ -326,20 +475,20 @@ public class Board : MonoBehaviour
         }
         else if(boardDir == BoardKind.BoardDir.Up)
         {
-            Debug.Log("create " + pos + name);
             board[(int)pos.x, (int)pos.y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(1, Enum.GetNames(typeof(PieceKind.piecekind)).Length) - 1;
             board[(int)pos.x, (int)pos.y].isDeletePiece = false;
+            if (IsDeletePiece() == 0)
+            {
+                gameManager.IsVertical = false;
+            }
+        }
+        else if (boardDir == BoardKind.BoardDir.Right)
+        {
+            board[(int)pos.x, (int)pos.y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(1, Enum.GetNames(typeof(PieceKind.piecekind)).Length) - 1;
+            board[(int)pos.x, (int)pos.y].isDeletePiece = false; 
         }
         board[(int)pos.x, (int)pos.y].setSprite();
-        if (IsDeletePiece() > 0)
-        {
-            //FillPiece();
-        }
-        else
-        {
-            //gameManager.IsHorizontal = false;
-            //gameManager.IsVertical = false;
-        }
+
     }
 
 }

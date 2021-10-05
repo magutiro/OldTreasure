@@ -62,6 +62,10 @@ public class GameManager : MonoBehaviour
             default:
                 break;
         }
+        if (Input.GetKeyDown(KeyCode.Q))
+        {
+            Debug.Log(board.board[0,2].name);
+        }
     }
 
     private void FillPiece()
@@ -71,24 +75,27 @@ public class GameManager : MonoBehaviour
         if(board.IsDeletePiece() >= 1)
         {
             StartCoroutine(board.FillPiece(() => currentState = GameState.FillPiece));
+            //board.FillPiece();
+            //currentState = GameState.FillPiece;
         }
         else
         {
             StartCoroutine(board.FillPiece(() => currentState = GameState.MatchCheck));
+            return;
         }
         for (int i = 0; i < boards.Count; i++)
         {
             if (boards[i].IsDeletePiece() >= 1)
             {
-                Debug.Log(boards[i].IsDeletePiece());
                 StartCoroutine(boards[i].FillPiece(() => currentState = GameState.FillPiece));
+                continue;
             }
-            else
+            else if (i == boards.Count)
             {
-                Debug.Log("end");
-                StartCoroutine(boards[i].FillPiece(() => currentState = GameState.MatchCheck)); 
+                currentState = GameState.MatchCheck;
             }
         }
+
     }
 
     private void DeletePiece()

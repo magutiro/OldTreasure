@@ -14,15 +14,13 @@ public class Piece : MonoBehaviour
 
     [SerializeField]
     public PieceKind.piecekind kind;
-    public int x;
-    public int y;
+    public Vector2 pos;
     public bool isdel;
 
     private void Update()
     {
         kind = piecekind;
-        x =(int)boardPos.x;
-        y = (int)boardPos.y;
+        pos = boardPos;
         isdel = isDeletePiece;
     }
     private void Awake()

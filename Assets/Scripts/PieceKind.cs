@@ -16,14 +16,20 @@ public class PieceKind : MonoBehaviour
         Pink,
         Puple = 5,
         None,
+        Gley,
     }
 
     public void setSprite(Image pieceImage,piecekind pk)
     {
         if(pk == piecekind.None)
         {
-            pieceImage.sprite = null;
+            pieceImage.gameObject.SetActive(false);
             return;
+        }
+        else if(pk == piecekind.Gley)
+        {
+            pieceImage.sprite = pieceSprite[6];
+            pieceImage.gameObject.SetActive(true);
         }
         else
         {
@@ -32,6 +38,7 @@ public class PieceKind : MonoBehaviour
                 //Debug.Log(pk.ToString()+pieceSprite[i].name);
                 if (pk.ToString() == pieceSprite[i].name)
                 {
+                    pieceImage.gameObject.SetActive(true);
                     pieceImage.sprite = pieceSprite[i];
                 }
             }
