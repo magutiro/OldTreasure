@@ -28,8 +28,8 @@ public class PieceKind : MonoBehaviour
         }
         else if(pk == piecekind.Gley)
         {
-            pieceImage.sprite = pieceSprite[6];
             pieceImage.gameObject.SetActive(true);
+            pieceImage.sprite = pieceSprite[6];
         }
         else
         {

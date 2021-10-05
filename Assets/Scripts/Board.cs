@@ -85,6 +85,10 @@ public class Board : MonoBehaviour
                 }
             }
         }
+        if (boardDir == BoardKind.BoardDir.Front)
+        {
+            board[0, 0].GetComponent<MovePieceAnm>().SetMove(board[0, 0].pieceRectTransform.position + new Vector3(0, 60, 0), board[0, 0].pieceRectTransform.position, 2f);
+        }
         animManager.AddListAnimData(fillPieceAnim);
     }
     private void Start()
@@ -113,19 +117,12 @@ public class Board : MonoBehaviour
 
     public void SwitchPiece(Piece p1,Piece p2)
     {
-        // 位置を移動する
-        var animList = new List<AnimData>();
-        animList.Add(new AnimData(p1.gameObject, p2.pieceRectTransform.position, SwitchPieceCuration));
-        animList.Add(new AnimData(p2.gameObject, p1.pieceRectTransform.position, SwitchPieceCuration));
-        animManager.AddListAnimData(animList);
 
         var p1kind = p1.piecekind;
         p1.piecekind = p2.piecekind;
         p2.piecekind = p1kind;
 
         p1.setSprite(); p2.setSprite();
-        //board[(int)p1.boardPos.x, (int)p1.boardPos.y] = p2;
-        //board[(int)p2.boardPos.x, (int)p2.boardPos.y] = p1;
     }
 
     //マッチングしているピースの有無を判断
@@ -193,10 +190,7 @@ public class Board : MonoBehaviour
         // マッチしているピースの削除フラグを立てる
         foreach (var piece in board)
         {
-            piece.isDeletePiece = IsMatchPiece(piece);
-            if (piece.isDeletePiece)
-            {
-            }
+            //piece.isDeletePiece = IsMatchPiece(piece);
         }
         foreach (var piece in board)
         {
@@ -211,8 +205,9 @@ public class Board : MonoBehaviour
     }
     void DeleteMatchPiece(Vector2 pos,PieceKind.piecekind kind)
     {
-        if (!IsInBoard(pos)) {
-            return; 
+        if (!IsInBoard(pos))
+        {
+            return;
         }
 
         var piece = board[(int)pos.x, (int)pos.y];
@@ -222,7 +217,7 @@ public class Board : MonoBehaviour
         }
 
         if (!IsMatchPiece(piece)) {
-            return; 
+            return;
         }
 
         piece.isDeletePiece = true;
@@ -231,8 +226,9 @@ public class Board : MonoBehaviour
         {
             DeleteMatchPiece(pos + dir, kind);
         }
-        piece.piecekind = PieceKind.piecekind.None;
-        piece.setSprite();
+        board[(int)pos.x, (int)pos.y].isDeletePiece = true;
+        board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.None;
+        board[(int)pos.x, (int)pos.y].setSprite();
     }
     public int IsDeletePiece()
     {
@@ -276,7 +272,8 @@ public class Board : MonoBehaviour
             }
         }
         animManager.AddListAnimData(fillPieceAnim);
-        yield return new WaitForSeconds(0.1f); FillPiece();
+        FillPiece();
+        yield return new WaitForSeconds(1f);
         endCallBack();
     }
     public void FillPiece()
@@ -317,6 +314,8 @@ public class Board : MonoBehaviour
             //上または右のピースが、消えていなければ
             if (checkPiece.piecekind != PieceKind.piecekind.None && !checkPiece.isDeletePiece)
             {
+                fillPieceAnim.Add(new AnimData(checkPiece.gameObject, piece.pieceRectTransform.position, FillPieceDuration));
+
                 piece.piecekind = checkPiece.piecekind;
                 board[(int)checkPos.x, (int)checkPos.y].piecekind = PieceKind.piecekind.None;
                 piece.setSprite();
@@ -362,16 +361,17 @@ public class Board : MonoBehaviour
     {
         var piece = board[(int)pos.x, (int)pos.y];
         board[(int)pos.x, (int)pos.y].piecekind = gameManager.boards[0].board[(int)pos.x, 5].piecekind;
-        gameManager.boards[0].board[(int)pos.x, 5].piecekind = PieceKind.piecekind.Gley;
+        gameManager.boards[0].board[(int)pos.x, 5].piecekind = PieceKind.piecekind.None;
 
-        gameManager.boards[0].board[(int)pos.x, 5].isDeletePiece = false;
+        gameManager.boards[0].board[(int)pos.x, 5].isDeletePiece =true;
         board[(int)pos.x, (int)pos.y].isDeletePiece = false;
         board[(int)pos.x, (int)pos.y].setSprite();
         gameManager.boards[0].board[(int)pos.x, 5].setSprite();
         for(int y = 5; y >= 0; y--)
         {
-            UpFillPiece(new Vector2((int)pos.x, y), Vector2.down);
+            gameManager.boards[0].UpFillPiece(new Vector2((int)pos.x, y), Vector2.down);
         }
+        WaitTimer(0.2f);
     }
     void UpFillPiece(Vector2 pos,Vector2 delDir)
     {
@@ -386,16 +386,15 @@ public class Board : MonoBehaviour
         {
             var checkPiece = board[(int)checkPos.x, (int)checkPos.y];
             //上のピースが、消えていなければ
-            if (piece.piecekind != PieceKind.piecekind.None && checkPiece.piecekind != PieceKind.piecekind.Gley)
+            if (checkPiece.piecekind != PieceKind.piecekind.None && checkPiece.piecekind != PieceKind.piecekind.Gley)
             {
                 piece.piecekind = checkPiece.piecekind;
-                checkPiece.piecekind = PieceKind.piecekind.Gley;
+                checkPiece.piecekind = PieceKind.piecekind.None;
                 piece.setSprite();
                 checkPiece.setSprite();
 
                 piece.isDeletePiece = false;
                 checkPiece.isDeletePiece = false;
-
                 return;
             }
             checkPos += delDir;
@@ -408,21 +407,22 @@ public class Board : MonoBehaviour
         board[(int)pos.x, (int)pos.y].piecekind = gameManager.boards[1].board[0, (int)pos.y].piecekind;
         gameManager.boards[1].board[0, (int)pos.y].piecekind = PieceKind.piecekind.None;
 
-        gameManager.boards[1].board[0, (int)pos.y].isDeletePiece = false;
+        gameManager.boards[1].board[0, (int)pos.y].isDeletePiece = true;
         board[(int)pos.x, (int)pos.y].isDeletePiece = false;
 
         gameManager.boards[1].board[0, (int)pos.y].setSprite();
         board[(int)pos.x, (int)pos.y].setSprite(); 
         for (int x = 0; x < 6; x++)
         {
-            RightFillPiece(new Vector2(x,(int)pos.y), Vector2.right);
+            gameManager.boards[1].RightFillPiece(new Vector2(x,(int)pos.y), Vector2.right);
         }
+        WaitTimer(0.2f);
     }
     void RightFillPiece(Vector2 pos, Vector2 delDir)
     {
         var piece = board[(int)pos.x, (int)pos.y];
         //ピースが消されていなければ何もしない
-        if (piece.piecekind != PieceKind.piecekind.None && !piece.isDeletePiece)
+        if (piece.piecekind != PieceKind.piecekind.None && piece.piecekind != PieceKind.piecekind.Gley)
         {
             return;
         }
@@ -431,7 +431,7 @@ public class Board : MonoBehaviour
         {
             var checkPiece = board[(int)checkPos.x, (int)checkPos.y];
             //上のピースが、消えていなければ
-            if (checkPiece.piecekind != PieceKind.piecekind.None && !checkPiece.isDeletePiece)
+            if (checkPiece.piecekind != PieceKind.piecekind.None && checkPiece.piecekind != PieceKind.piecekind.Gley)
             {
                 piece.piecekind = checkPiece.piecekind;
                 checkPiece.piecekind = PieceKind.piecekind.None;
@@ -451,6 +451,7 @@ public class Board : MonoBehaviour
     {
         if(IsLastBoard == true)
         {
+            //Debug.Log("gley");
             board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.Gley;
             board[(int)pos.x, (int)pos.y].isDeletePiece = false;
             board[(int)pos.x, (int)pos.y].setSprite();
@@ -460,11 +461,11 @@ public class Board : MonoBehaviour
         {
             if (gameManager.boards.Count >=1 && gameManager.IsVertical)
             {
-                gameManager.boards[0].UpFillPiece(pos);
+                UpFillPiece(pos);
             }
             else if (gameManager.boards.Count >= 2 && gameManager.IsHorizontal)
             {
-                gameManager.boards[0].RightFillPiece(pos);
+                RightFillPiece(pos);
             }
             if (board[(int)pos.x, (int)pos.y].isDeletePiece)
             {
@@ -475,20 +476,29 @@ public class Board : MonoBehaviour
         }
         else if(boardDir == BoardKind.BoardDir.Up)
         {
-            board[(int)pos.x, (int)pos.y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(1, Enum.GetNames(typeof(PieceKind.piecekind)).Length) - 1;
+            board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.Gley;
             board[(int)pos.x, (int)pos.y].isDeletePiece = false;
             if (IsDeletePiece() == 0)
             {
                 gameManager.IsVertical = false;
             }
+            else
+            {
+                Debug.Log("up");
+            }
         }
         else if (boardDir == BoardKind.BoardDir.Right)
         {
-            board[(int)pos.x, (int)pos.y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(1, Enum.GetNames(typeof(PieceKind.piecekind)).Length) - 1;
+            board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.Gley;
             board[(int)pos.x, (int)pos.y].isDeletePiece = false; 
         }
         board[(int)pos.x, (int)pos.y].setSprite();
 
+    }
+
+    private IEnumerator WaitTimer(float waitTime)
+    {
+        yield return new WaitForSeconds(waitTime); 
     }
 
 }
