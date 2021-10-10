@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
-public class MovePieceAnm : MonoBehaviour
+public class PieceAnimation : MonoBehaviour
 {
     public Vector3 fromPosition;
     public Vector3 toPosition;
@@ -12,18 +12,17 @@ public class MovePieceAnm : MonoBehaviour
 
     private bool isTween;
     private float elapsedTime;
-    // Start is called before the first frame update
-    void Start()
+    void Awake()
     {
         duration = 1.0f;
         rectPos = GetComponent<RectTransform>();
-    }
 
-    // Update is called once per frame
+    }
     void Update()
     {
-        if (Input.GetKeyDown(KeyCode.E)){
-            rectPos.position += new Vector3(0,10,0);
+        if (Input.GetKeyDown(KeyCode.E))
+        {
+            rectPos.position += new Vector3(0, 10, 0);
         }
         if (!isTween)
         {
@@ -41,14 +40,14 @@ public class MovePieceAnm : MonoBehaviour
             return;
         }
 
-        //
+        //アニメーションの進行％
         var moveProgress = elapsedTime / duration;
         rectPos.position = Vector3.Lerp(fromPosition, toPosition, moveProgress);
-        Debug.Log((fromPosition, toPosition, rectPos.position));
     }
 
     public void SetMove(Vector3 from, Vector3 to, float dur)
     {
+        if (isTween) return;
         fromPosition = from;
         toPosition = to;
         duration = dur;

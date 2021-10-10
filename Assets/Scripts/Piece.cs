@@ -7,6 +7,7 @@ public class Piece : MonoBehaviour
 {
     private PieceKind  pieceKind;
     private Image pieceImage;
+    private PieceAnimation pieceAnimation;
     public PieceKind.piecekind piecekind { get; set; }
     public RectTransform pieceRectTransform { get; set; }
     public Vector2 boardPos { get; set; }
@@ -25,17 +26,29 @@ public class Piece : MonoBehaviour
     }
     private void Awake()
     {
+        pieceAnimation = GetComponent<PieceAnimation>();
         pieceImage = GetComponent<Image>();
         pieceRectTransform = GetComponent<RectTransform>();
         pieceKind = GameObject.Find("PieceKind").gameObject.GetComponent<PieceKind>();
 
     }
 
-    public void setRectTransform(RectTransform rect)
+    public void setAnimation(float dur)
     {
-        pieceRectTransform.position = rect.position;
+        pieceAnimation.SetMove(pieceRectTransform.position + new Vector3(0, 1200, 0), pieceRectTransform.position, dur);
     }
+    public void setAnimation(float dir,float dur,bool isHorizontal)
+    {
+        if (isHorizontal)
+        {
 
+            pieceAnimation.SetMove(pieceRectTransform.position + new Vector3(dir, 0, 0), pieceRectTransform.position, dur);
+        }
+        else
+        {
+            pieceAnimation.SetMove(pieceRectTransform.position + new Vector3(0, dir, 0), pieceRectTransform.position, dur);
+        }
+    }
     public void setSprite()
     {
         pieceKind.setSprite(pieceImage, piecekind);
