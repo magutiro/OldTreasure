@@ -35,7 +35,7 @@ public class Piece : MonoBehaviour
 
     public void setAnimation(float dur)
     {
-        pieceAnimation.SetMove(pieceRectTransform.position + new Vector3(0, 1200, 0), pieceRectTransform.position, dur);
+        pieceAnimation.SetMove(pieceRectTransform.position + new Vector3(0, 300, 0), pieceRectTransform.position, dur);
     }
     public void setAnimation(float dir,float dur,bool isHorizontal)
     {

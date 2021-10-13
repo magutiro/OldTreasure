@@ -55,5 +55,7 @@ public class PieceAnimation : MonoBehaviour
         rectPos.position = from;
         elapsedTime = 0;
         isTween = true;
+
+        //toPosition = from;
     }
 }

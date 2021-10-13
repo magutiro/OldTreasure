@@ -26,8 +26,8 @@ public class Board : MonoBehaviour
     private List<AnimData> fillPieceAnim = new List<AnimData>();
     public bool IsLastBoard;
 
-    private int[] bx = {5,5,5,5,5,5 };
-    private int[] by = {5,5,5,5,5,5 };
+    private int[] bx = {0,0,0,0,0,0 };
+    private int[] by = { 0, 0, 0, 0, 0, 0 };
     void OutputBoard()
     {
         string str = "";
@@ -198,8 +198,8 @@ public class Board : MonoBehaviour
     {
         for(int i = 0; i < 6; i++)
         {
-            bx[i] = 5;
-            by[i] = 5;
+            bx[i] = 0;
+            by[i] = 0;
         }
         // マッチしているピースの削除フラグを立てる
         foreach (var piece in board)
@@ -340,12 +340,12 @@ public class Board : MonoBehaviour
                 board[(int)checkPos.x, (int)checkPos.y].isDeletePiece = true;
                 if (gameManager.IsVertical)
                 {
-                    piece.setAnimation(200 * (pos.y - checkPos.y), 1f, false);
+                    piece.setAnimation(300, 1f, false);
                     return;
                 }
                 else
                 {
-                    piece.setAnimation(200 * (pos.y - checkPos.y), 1f, gameManager.IsHorizontal);
+                    piece.setAnimation(300, 1f, gameManager.IsHorizontal);
                     return;
                 }
             }
@@ -353,11 +353,11 @@ public class Board : MonoBehaviour
         }
         if (gameManager.IsVertical)
         {
-            by[(int)pos.x]--;
+            by[(int)pos.x]++;
         }
         else
         {
-            bx[(int)pos.y]--;
+            bx[(int)pos.y]++;
         }
         CreatePiece(pos);
     }
@@ -492,9 +492,8 @@ public class Board : MonoBehaviour
         {
             if (gameManager.boards.Count >=1 && gameManager.IsVertical)
             {
-                Debug.Log((pos.y + by[(int)pos.x]));
                 UpFillPiece(pos);
-                board[(int)pos.x, (int)pos.y].setAnimation(200 * (pos.y + by[(int)pos.x]), 1f, false);
+                board[(int)pos.x, (int)pos.y].setAnimation(300, 1f, false);
             }
             else if (gameManager.boards.Count >= 2 && gameManager.IsHorizontal)
             {
