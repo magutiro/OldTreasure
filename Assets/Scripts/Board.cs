@@ -122,6 +122,39 @@ public class Board : MonoBehaviour
         }
         return nearestPiece;
     }
+    //選択されたピースと周囲の拡大
+    public void BigUpPiece(Piece piece)
+    {
+        List<Piece> pieces = new List<Piece>();
+        Vector2 pos = piece.boardPos;
+        pieces.Add(board[(int)pos.x, (int)pos.y]);
+        pieces.Add(board[(int)pos.x-1, (int)pos.y]);
+        pieces.Add(board[(int)pos.x+1, (int)pos.y]);
+        pieces.Add(board[(int)pos.x, (int)pos.y+1]);
+        pieces.Add(board[(int)pos.x, (int)pos.y-1]);
+
+        foreach(var p in pieces)
+        {
+            p.transform.localScale = p.transform.localScale*1.5f;
+        }
+    }
+    //選択されたピースと周囲の縮小
+    public void SmallDownPiece(Piece piece)
+    {
+        List<Piece> pieces = new List<Piece>();
+        Vector2 pos = piece.boardPos;
+        pieces.Add(board[(int)pos.x, (int)pos.y]);
+        pieces.Add(board[(int)pos.x - 1, (int)pos.y]);
+        pieces.Add(board[(int)pos.x + 1, (int)pos.y]);
+        pieces.Add(board[(int)pos.x, (int)pos.y + 1]);
+        pieces.Add(board[(int)pos.x, (int)pos.y - 1]);
+
+        foreach (var p in pieces)
+        {
+            p.transform.localScale = p.transform.localScale / 1.5f;
+        }
+
+    }
     //ピースの入れ替え
 
     public void SwitchPiece(Piece p1,Piece p2)
