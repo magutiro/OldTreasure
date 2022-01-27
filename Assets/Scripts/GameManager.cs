@@ -28,11 +28,14 @@ public class GameManager : MonoBehaviour
     // Start is called before the first frame update
     void Start()
     {
+        int[] pieceList = {2,2,2,0,0,0};
+        board.setRandomPiecekindList(pieceList);
         board.InitializeBorad();
         board.boardDir = BoardKind.BoardDir.Front;
         for (int i=0;i<boards.Count;i++)
         {
             boards[i].boardDir = (BoardKind.BoardDir)i+1;
+            boards[i].setRandomPiecekindList(pieceList);
             boards[i].InitializeBorad();
         }
 

@@ -12,6 +12,7 @@ public class Board : MonoBehaviour
 
     public Piece[,] board;
     public BoardKind.BoardDir boardDir;
+    public bool IsLastBoard;
 
     [SerializeField]
     GameManager gameManager;
@@ -21,13 +22,13 @@ public class Board : MonoBehaviour
     private RectTransform canvasRect;
     [SerializeField]
     private TweenAnimationManager animManager;
-    private List<Vector2> pieceCreatePos = new List<Vector2>();
 
     private List<AnimData> fillPieceAnim = new List<AnimData>();
-    public bool IsLastBoard;
 
     private int[] bx = {0,0,0,0,0,0 };
     private int[] by = { 0, 0, 0, 0, 0, 0 };
+
+    List<PieceKind.piecekind> pieceList = new List<PieceKind.piecekind>();
     void OutputBoard()
     {
         string str = "";
@@ -70,7 +71,7 @@ public class Board : MonoBehaviour
                 board[x, y] = transform.GetChild(y*6+x).gameObject.GetComponent<Piece>();
                 board[x, y].boardPos = new Vector2(x,y);
                 //ランダムにピースの種類を決定
-                board[x, y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(0, Enum.GetNames(typeof(PieceKind.piecekind)).Length-2);
+                board[x, y].piecekind = pieceList[UnityEngine.Random.Range(0, 6)];
                 board[x, y].setSprite();
             }
         }
@@ -81,7 +82,7 @@ public class Board : MonoBehaviour
             {
                 for (int x = 0; x < 6; x++)
                 {
-                    board[x, y].piecekind = (PieceKind.piecekind)UnityEngine.Random.Range(0, Enum.GetNames(typeof(PieceKind.piecekind)).Length-2);
+                    board[x, y].piecekind = pieceList[UnityEngine.Random.Range(0, 6)];
                     board[x, y].setSprite();
                     gameManager.IsHorizontal = false;
                     gameManager.IsVertical = false;
@@ -99,6 +100,27 @@ public class Board : MonoBehaviour
             }
         }
         animManager.AddListAnimData(fillPieceAnim);
+    }
+    public bool setRandomPiecekindList(int[] list)
+    {
+        int countlist=0;
+        foreach(int count in list)
+        {
+            countlist += count;
+        }
+        if (countlist > 6)
+        {
+            Debug.Log(countlist+"Error");
+            return true;
+        }
+        for (int i = 0; i < 6; i++)
+        {
+            for (int j = 0; j < list[i]; j++)
+            {
+                pieceList.Add((PieceKind.piecekind)i);
+            }
+        }
+        return false;
     }
     private void Start()
     {
@@ -340,12 +362,12 @@ public class Board : MonoBehaviour
                 board[(int)checkPos.x, (int)checkPos.y].isDeletePiece = true;
                 if (gameManager.IsVertical)
                 {
-                    piece.setAnimation(300, 1f, false);
+                    piece.setAnimation(250, 0.3f, false);
                     return;
                 }
                 else
                 {
-                    piece.setAnimation(300, 1f, gameManager.IsHorizontal);
+                    piece.setAnimation(250, 0.3f, gameManager.IsHorizontal);
                     return;
                 }
             }
@@ -493,7 +515,7 @@ public class Board : MonoBehaviour
             if (gameManager.boards.Count >=1 && gameManager.IsVertical)
             {
                 UpFillPiece(pos);
-                board[(int)pos.x, (int)pos.y].setAnimation(300, 1f, false);
+                board[(int)pos.x, (int)pos.y].setAnimation(250, 0.3f, false);
             }
             else if (gameManager.boards.Count >= 2 && gameManager.IsHorizontal)
             {
