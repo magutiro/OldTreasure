@@ -22,6 +22,7 @@ public class GameManager : MonoBehaviour
     [SerializeField]
     private GameState currentState;
     private Piece selectedPiece;
+    private Piece tmpPiece;
 
     public bool IsVertical;
     public bool IsHorizontal;
@@ -125,15 +126,27 @@ public class GameManager : MonoBehaviour
     {
         if (Input.GetMouseButton(0))
         {
-            
+            var piece = board.GetNearestPiece(Input.mousePosition);
+
+            if (tmpPiece != piece && piece != selectedPiece)
+            {
+                tmpPiece = piece;
+                board.SwitchPiece(selectedPiece, piece);
+            }
+            else if (tmpPiece!=null&&tmpPiece != piece && piece == selectedPiece)
+            {
+                board.SwitchPiece(tmpPiece, piece);
+                tmpPiece = piece;
+            }
         }
         if (Input.GetMouseButtonUp(0))
         {
             var piece = board.GetNearestPiece(Input.mousePosition);
             if (piece != selectedPiece)
             {
-                board.SwitchPiece(selectedPiece, piece);
+                //board.SwitchPiece(selectedPiece, piece);
             }
+            board.SmallDownPiece(selectedPiece);
             currentState = GameState.MatchCheck;
         }
     }
@@ -143,6 +156,8 @@ public class GameManager : MonoBehaviour
         if (Input.GetMouseButtonDown(0))
         {
             selectedPiece = board.GetNearestPiece(Input.mousePosition);
+            board.BigUpPiece(selectedPiece);
+            tmpPiece = null;
             currentState = GameState.PieceMove;
         }
     }
