@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.SceneManagement;
 
 public class GameManager : MonoBehaviour
 {
@@ -21,15 +22,24 @@ public class GameManager : MonoBehaviour
     public List<Board> boards;
     [SerializeField]
     private GameState currentState;
+    [SerializeField]
+    private Slider slider;
+    [SerializeField]
+    private Text countText;
     private Piece selectedPiece;
     private Piece tmpPiece;
+    private Vector3 nowPos;
+
+    public static int ChangeCount = 0;
+    int HP = 30;
 
     public bool IsVertical;
     public bool IsHorizontal;
     // Start is called before the first frame update
     void Start()
     {
-        int[] pieceList = {2,2,2,0,0,0};
+        ChangeCount = 0;
+        int[] pieceList = {1,1,1,1,1,1};
         board.setRandomPiecekindList(pieceList);
         board.InitializeBorad();
         board.boardDir = BoardKind.BoardDir.Front;
@@ -66,25 +76,41 @@ public class GameManager : MonoBehaviour
             default:
                 break;
         }
+        if(ChangeCount >= HP)
+        {
+            GameOver();
+        }else if (board.isGetTreger())
+        {
+            GameCrear();
+        }
         if (Input.GetKeyDown(KeyCode.Q))
         {
             Debug.Log(board.board[0,2].name);
         }
     }
-
+    private void GameOver()
+    {
+        Debug.Log("崩壊");
+        SceneManager.LoadScene("GameOverScene");
+    }
+    private void GameCrear()
+    {
+        Debug.Log("クリア");
+        SceneManager.LoadScene("GameCrearScene");
+    }
     private void FillPiece()
     {
         currentState = GameState.Wait;
         //StartCoroutine(board.FillPiece(() => currentState = GameState.MatchCheck));
         if(board.IsDeletePiece() >= 1)
         {
-            StartCoroutine(board.FillPiece(() => currentState = GameState.FillPiece));
+            StartCoroutine(board.FillPiece(() => currentState = GameState.MatchCheck));
             //board.FillPiece();
             //currentState = GameState.FillPiece;
         }
         else
         {
-            StartCoroutine(board.FillPiece(() => currentState = GameState.MatchCheck));
+            //StartCoroutine(board.FillPiece(() => currentState = GameState.MatchCheck));
             return;
         }
         for (int i = 0; i < boards.Count; i++)
@@ -96,7 +122,7 @@ public class GameManager : MonoBehaviour
             }
             else if (i == boards.Count)
             {
-                currentState = GameState.MatchCheck;
+                //currentState = GameState.MatchCheck;
             }
         }
 
@@ -126,15 +152,18 @@ public class GameManager : MonoBehaviour
     {
         if (Input.GetMouseButton(0))
         {
-            var piece = board.GetNearestPiece(Input.mousePosition);
-
-            if (tmpPiece != piece && piece != selectedPiece)
+            var piece = board.GetNearestPiece(Input.mousePosition); 
+            //piece = GetVectorPiece(nowPos - Input.mousePosition);
+            //piece = GetVectorPiece((int)piece.boardPos.x - (int)selectedPiece.boardPos.x, (int)selectedPiece.boardPos.y - (int)piece.boardPos.y);
+            if (tmpPiece != piece && piece != selectedPiece && isNearPiece(selectedPiece,piece))
             {
+                //piece = GetVectorPiece(nowPos - Input.mousePosition);
                 tmpPiece = piece;
                 board.SwitchPiece(selectedPiece, piece);
             }
-            else if (tmpPiece!=null&&tmpPiece != piece && piece == selectedPiece)
+            else if (tmpPiece!=null&&tmpPiece != piece && piece == selectedPiece && isNearPiece(selectedPiece, piece))
             {
+                //piece = GetVectorPiece(nowPos - Input.mousePosition);
                 board.SwitchPiece(tmpPiece, piece);
                 tmpPiece = piece;
             }
@@ -144,17 +173,62 @@ public class GameManager : MonoBehaviour
             var piece = board.GetNearestPiece(Input.mousePosition);
             if (piece != selectedPiece)
             {
+                ChangeCount++;
+                countText.text = "崩壊まで" + (HP-ChangeCount) + "/" + HP;
+                slider.value = (float)ChangeCount / HP;
                 //board.SwitchPiece(selectedPiece, piece);
             }
             board.SmallDownPiece(selectedPiece);
             currentState = GameState.MatchCheck;
         }
     }
-
+    private Piece GetVectorPiece(Vector3 pos)
+    {
+        int x = (int)pos.x;
+        int y = (int)pos.y;
+        if (y > x && y > -x)
+        {
+            //下方向
+            Debug.Log("下");
+            return boards[0].board[(int)selectedPiece.boardPos.x, (int)selectedPiece.boardPos.y -1];
+        }
+        else if(y < x && y > -x)
+        {
+            //左方向
+            Debug.Log("左");
+            return boards[0].board[(int)selectedPiece.boardPos.x +1, (int)selectedPiece.boardPos.y];
+        }
+        else if(y > x && y < -x)
+        {
+            //右方向
+            Debug.Log("右");
+            return boards[0].board[(int)selectedPiece.boardPos.x -1, (int)selectedPiece.boardPos.y];
+        }
+        else if (y < x && y < -x)
+        {
+            //上方向
+            Debug.Log("上");
+            return boards[0].board[(int)selectedPiece.boardPos.x, (int)selectedPiece.boardPos.y +1];
+        }
+        return null;
+    }
+    private bool isNearPiece(Piece selectPiece,Piece ClickPiece)
+    {
+        if(Math.Pow((int)selectPiece.boardPos.x - (int)ClickPiece.boardPos.x, 2) == 1 && Math.Pow((int)selectPiece.boardPos.y - (int)ClickPiece.boardPos.y, 2) == 0)
+        {
+            return true;
+        }
+        else if (Math.Pow((int)selectPiece.boardPos.x - (int)ClickPiece.boardPos.x, 2) == 0 && Math.Pow((int)selectPiece.boardPos.y - (int)ClickPiece.boardPos.y, 2) == 1)
+        {
+            return true;
+        }
+        return false;
+    }
     private void Idle()
     {
         if (Input.GetMouseButtonDown(0))
         {
+            nowPos = Input.mousePosition;
             selectedPiece = board.GetNearestPiece(Input.mousePosition);
             board.BigUpPiece(selectedPiece);
             tmpPiece = null;

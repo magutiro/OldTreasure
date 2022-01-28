@@ -57,6 +57,20 @@ public class Board : MonoBehaviour
         //Debug.Log(str);
 
     }
+    public bool isGetTreger()
+    {
+        for(int x = 2; x < 6; x++)
+        {
+            for(int y = 0; y < 4; y++)
+            {
+                if(board[x,y].piecekind != PieceKind.piecekind.Gley)
+                {
+                    return false;
+                }
+            }
+        }
+        return true;
+    }
     //初期化
     public void InitializeBorad()
     {
@@ -150,10 +164,10 @@ public class Board : MonoBehaviour
         List<Piece> pieces = new List<Piece>();
         Vector2 pos = piece.boardPos;
         pieces.Add(board[(int)pos.x, (int)pos.y]);
-        pieces.Add(board[(int)pos.x-1, (int)pos.y]);
-        pieces.Add(board[(int)pos.x+1, (int)pos.y]);
-        pieces.Add(board[(int)pos.x, (int)pos.y+1]);
-        pieces.Add(board[(int)pos.x, (int)pos.y-1]);
+        if ((int)pos.x - 1 >= 0) pieces.Add(board[(int)pos.x - 1, (int)pos.y]);
+        if ((int)pos.x + 1 < 6) pieces.Add(board[(int)pos.x+1, (int)pos.y]);
+        if ((int)pos.y + 1 < 6) pieces.Add(board[(int)pos.x, (int)pos.y+1]);
+        if ((int)pos.y - 1 >= 0) pieces.Add(board[(int)pos.x, (int)pos.y-1]);
 
         foreach(var p in pieces)
         {
@@ -166,10 +180,10 @@ public class Board : MonoBehaviour
         List<Piece> pieces = new List<Piece>();
         Vector2 pos = piece.boardPos;
         pieces.Add(board[(int)pos.x, (int)pos.y]);
-        pieces.Add(board[(int)pos.x - 1, (int)pos.y]);
-        pieces.Add(board[(int)pos.x + 1, (int)pos.y]);
-        pieces.Add(board[(int)pos.x, (int)pos.y + 1]);
-        pieces.Add(board[(int)pos.x, (int)pos.y - 1]);
+        if ((int)pos.x - 1 >= 0) pieces.Add(board[(int)pos.x - 1, (int)pos.y]);
+        if ((int)pos.x + 1 < 6) pieces.Add(board[(int)pos.x + 1, (int)pos.y]);
+        if ((int)pos.y + 1 < 6) pieces.Add(board[(int)pos.x, (int)pos.y + 1]);
+        if ((int)pos.y - 1 >= 0) pieces.Add(board[(int)pos.x, (int)pos.y - 1]);
 
         foreach (var p in pieces)
         {
@@ -186,6 +200,15 @@ public class Board : MonoBehaviour
         p1.piecekind = p2.piecekind;
         p2.piecekind = p1kind;
 
+        if(p1.boardPos.x == p2.boardPos.x)
+        {
+            gameManager.IsVertical = true;
+        }
+        else if(p1.boardPos.y == p2.boardPos.y)
+        {
+            gameManager.IsHorizontal = true;
+        }
+        
         p1.setSprite(); p2.setSprite();
     }
 
@@ -214,14 +237,6 @@ public class Board : MonoBehaviour
         // 横方向にマッチするかの判定 自分自身をカウントするため +1 する
         var horizontalMatchCount = GetSameKindPieceNum(kind, pos, Vector2.right) + GetSameKindPieceNum(kind, pos, Vector2.left) + 1;
 
-        if(verticalMatchCount >= 3)
-        {
-            gameManager.IsVertical = true;
-        }
-        if(horizontalMatchCount >= 3)
-        {
-            gameManager.IsHorizontal = true;
-        }
         return verticalMatchCount >= 3 || horizontalMatchCount >= 3;
     }
     // 対象の方向に引数で指定したの種類のピースがいくつあるかを返す
@@ -267,7 +282,7 @@ public class Board : MonoBehaviour
             {
                 DeleteMatchPiece(piece.boardPos, piece.piecekind);
                 //piece.piecekind = PieceKind.piecekind.None;
-                yield return new WaitForSeconds(0.5f);
+                yield return new WaitForSeconds(0.1f);
             }
         }
         endCallBadk();
@@ -342,7 +357,7 @@ public class Board : MonoBehaviour
         }
         animManager.AddListAnimData(fillPieceAnim);
         FillPiece();
-        yield return new WaitForSeconds(1f);
+        yield return new WaitForSeconds(0.3f);
         endCallBack();
     }
     public void FillPiece()
@@ -354,9 +369,17 @@ public class Board : MonoBehaviour
                 if (boardDir == BoardKind.BoardDir.Front)
                 {
                     FillGreyPiece(new Vector2(x, y), Vector2.down);
+                    if (gameManager.IsHorizontal)
+                    {
+                    }
+                    if (gameManager.IsVertical)
+                    {
+                        //FillGreyPiece(new Vector2(x, y), Vector2.right);
+                    }
                 }
             }
         }
+        WaitTimer(2f);
         for (int y = 5; y >= 0; y--)
         {
             for (int x = 0; x < 6; x++)
@@ -364,6 +387,13 @@ public class Board : MonoBehaviour
                 if (boardDir == BoardKind.BoardDir.Front)
                 {
                     FillGreyPiece(new Vector2(x, y), Vector2.right);
+                    if (gameManager.IsHorizontal)
+                    {
+                    }
+                    if (gameManager.IsVertical)
+                    {
+                        //FillGreyPiece(new Vector2(x, y), Vector2.down);
+                    }
                 }
             }
         }
@@ -435,9 +465,17 @@ public class Board : MonoBehaviour
                 board[(int)checkPos.x, (int)checkPos.y].piecekind = PieceKind.piecekind.Gley;
                 piece.setSprite();
                 board[(int)checkPos.x, (int)checkPos.y].setSprite();
+                if (gameManager.IsVertical)
+                {
+                    piece.setAnimation(250, 0.3f, false);
+                    return;
+                }
+                else
+                {
+                    piece.setAnimation(250, 0.3f, gameManager.IsHorizontal);
+                    return;
+                }
 
-
-                return;
             }
             checkPos += delDir;
         }
@@ -543,16 +581,23 @@ public class Board : MonoBehaviour
             board[(int)pos.x, (int)pos.y].setSprite();
             return;
         }
+        if(board[(int)pos.x, (int)pos.y].piecekind == PieceKind.piecekind.Gley)
+        {
+
+            board[(int)pos.x, (int)pos.y].setSprite();
+            //return;
+        }
         if (boardDir == BoardKind.BoardDir.Front)
         {
             if (gameManager.boards.Count >=1 && gameManager.IsVertical)
             {
-                UpFillPiece(pos);
+                UpFillPiece(pos); 
                 board[(int)pos.x, (int)pos.y].setAnimation(250, 0.3f, false);
             }
             else if (gameManager.boards.Count >= 2 && gameManager.IsHorizontal)
             {
-                RightFillPiece(pos);
+                RightFillPiece(pos); 
+                board[(int)pos.x, (int)pos.y].setAnimation(250, 0.3f, true);
             }
             if (board[(int)pos.x, (int)pos.y].isDeletePiece)
             {
@@ -577,7 +622,11 @@ public class Board : MonoBehaviour
         else if (boardDir == BoardKind.BoardDir.Right)
         {
             board[(int)pos.x, (int)pos.y].piecekind = PieceKind.piecekind.Gley;
-            board[(int)pos.x, (int)pos.y].isDeletePiece = false; 
+            board[(int)pos.x, (int)pos.y].isDeletePiece = false;
+            if (IsDeletePiece() == 0)
+            {
+                gameManager.IsHorizontal = false;
+            }
         }
         board[(int)pos.x, (int)pos.y].setSprite();
 
